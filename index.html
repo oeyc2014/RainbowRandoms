@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>R.N.L.G.A - Fun Random Generator (Friendly Toddler Voice)</title>
+<style>
+  html, body {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    font-family: Arial, sans-serif;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    transition: background-color 0.3s;
+  }
+
+  #display {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+  }
+
+  .main-text {
+    font-weight: bold;
+    display: flex;
+    justify-content: center;
+    flex-wrap: wrap;
+    font-size: 400px;
+    transition: all 0.3s;
+    line-height: 0.9;
+  }
+
+  .main-text span {
+    margin: 0 5px;
+    transition: color 0.3s;
+  }
+
+  .sub-text {
+    font-weight: bold;
+    margin-top: 20px;
+    font-size: 100px;
+    transition: color 0.3s;
+  }
+
+  #controls {
+    display: flex;
+    justify-content: center;
+    gap: 12px;
+    padding: 16px;
+    flex-wrap: wrap;
+  }
+
+  button {
+    font-size: 24px;
+    font-weight: bold;
+    padding: 12px 22px;
+    margin: 6px;
+    cursor: pointer;
+    border: none;
+    border-radius: 10px;
+    transition: transform 0.15s, background-color 0.25s;
+  }
+
+  button:hover { transform: scale(1.05); background-color: #eee; }
+
+  /* --- The new bottom-left speak button --- */
+  #speakBtn {
+    position: fixed;
+    bottom: 20px;
+    left: 20px;
+    width: 70px;
+    height: 70px;
+    border-radius: 15px;
+    font-size: 36px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #ffb347;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    transition: transform 0.2s, background-color 0.2s;
+  }
+
+  #speakBtn:hover {
+    background-color: #ffd27f;
+    transform: scale(1.1);
+  }
+
+  @media (max-width: 768px) {
+    .main-text { font-size: 200px; }
+    .sub-text { font-size: 60px; }
+  }
+
+  @media (max-width: 480px) {
+    .main-text { font-size: 120px; }
+    .sub-text { font-size: 40px; }
+  }
+</style>
+</head>
+<body>
+
+<div id="display" aria-live="polite">
+  <div class="main-text" id="mainText">0</div>
+  <div class="sub-text" id="subText">Zero</div>
+</div>
+
+<div id="controls" role="group" aria-label="Controls">
+  <button onclick="generateNumber()" aria-label="Generate number">Generate Number</button>
+  <button onclick="generateLetter()" aria-label="Generate letter">Generate Letter</button>
+</div>
+
+<!-- New square speak button -->
+<button id="speakBtn" onclick="speakCurrent()" aria-label="Speak current">🔊</button>
+
+<script>
+/* ====== Data & helpers ====== */
+const colorChoices = ["red","green","blue","orange","purple","teal","magenta","brown","navy"];
+const bgColors = ["#FF9999","#FFCC66","#FFFF66","#66FF66","#66FFFF","#66CCFF","#CC66FF","#FF66CC","#FF6666","#FFD700"];
+
+const letterWords = {
+  'A': "Apple", 'B': "Banana", 'C': "Cat", 'D': "Dog", 'E': "Elephant",
+  'F': "Fish", 'G': "Grapes", 'H': "Hat", 'I': "Igloo", 'J': "Juice",
+  'K': "Kite", 'L': "Lion", 'M': "Monkey", 'N': "Nest", 'O': "Orange",
+  'P': "Pizza", 'Q': "Queen", 'R': "Rabbit", 'S': "Sun", 'T': "Tiger",
+  'U': "Umbrella", 'V': "Violin", 'W': "Whale", 'X': "Xylophone",
+  'Y': "Yak", 'Z': "Zebra"
+};
+
+function numberToWords(n) {
+  const ones = ["Zero","One","Two","Three","Four","Five","Six","Seven","Eight","Nine"];
+  const teens = ["Ten","Eleven","Twelve","Thirteen","Fourteen","Fifteen","Sixteen","Seventeen","Eighteen","Nineteen"];
+  const tens = ["","","Twenty","Thirty","Forty","Fifty","Sixty","Seventy","Eighty","Ninety"];
+  if (n >= 0 && n < 10) return ones[n];
+  if (n >= 10 && n < 20) return teens[n-10];
+  if (n >= 20 && n <= 99) {
+    const ten = Math.floor(n / 10);
+    const one = n % 10;
+    return tens[ten] + (one !== 0 ? "-" + ones[one] : "");
+  }
+  if (n === 100) return "One Hundred";
+  return n.toString();
+}
+
+function pickContrastingColor(exclude) {
+  const available = colorChoices.filter(c => c !== exclude);
+  return available.length ? available[Math.floor(Math.random() * available.length)] : colorChoices[Math.floor(Math.random() * colorChoices.length)];
+}
+
+/* ====== Current state ====== */
+let currentMain = "0";
+let currentSub = "Zero";
+let currentIsNumber = true;
+
+/* ====== Display logic ====== */
+function showText(main, sub) {
+  const bg = bgColors[Math.floor(Math.random() * bgColors.length)];
+  document.body.style.backgroundColor = bg;
+
+  const mainTextDiv = document.getElementById("mainText");
+  mainTextDiv.innerHTML = "";
+
+  const mainColors = Array.from(main).map(() => colorChoices[Math.floor(Math.random() * colorChoices.length)]);
+  main.split("").forEach((ch, i) => {
+    const span = document.createElement("span");
+    span.textContent = ch;
+    span.style.color = mainColors[i];
+    mainTextDiv.appendChild(span);
+  });
+
+  const subTextDiv = document.getElementById("subText");
+  subTextDiv.textContent = sub;
+  subTextDiv.style.color = pickContrastingColor(mainColors[0]);
+
+  currentMain = main;
+  currentSub = sub;
+  currentIsNumber = /^\d+$/.test(main);
+}
+
+/* ====== Generators ====== */
+function generateNumber() {
+  const number = Math.floor(Math.random() * 100) + 1;
+  const word = numberToWords(number).replace("-", " ");
+  showText(number.toString(), word);
+}
+
+function generateLetter() {
+  const letters = Object.keys(letterWords);
+  const letter = letters[Math.floor(Math.random() * letters.length)];
+  const displayLetter = (Math.random() < 0.5) ? letter.toLowerCase() : letter;
+  showText(displayLetter, letterWords[letter]);
+}
+
+/* ====== Speech ====== */
+let friendlyVoice = null;
+function loadVoices() {
+  const voices = window.speechSynthesis.getVoices();
+  friendlyVoice =
+    voices.find(v => v.name.includes("Google UK English Female")) ||
+    voices.find(v => v.name.includes("Google US English Female")) ||
+    voices.find(v => /en(-|_)?/i.test(v.lang)) ||
+    voices[0];
+}
+window.speechSynthesis.onvoiceschanged = loadVoices;
+
+function speakText(text) {
+  if (!("speechSynthesis" in window)) {
+    alert("Sorry — your browser doesn't support speech synthesis.");
+    return;
+  }
+  window.speechSynthesis.cancel();
+  const utter = new SpeechSynthesisUtterance(text);
+  utter.rate = 0.8;   // slower and clearer
+  utter.pitch = 1.4;  // cheerful, friendly
+  if (friendlyVoice) utter.voice = friendlyVoice;
+  window.speechSynthesis.speak(utter);
+}
+
+function speakCurrent() {
+  if (currentIsNumber) {
+    speakText(currentSub.replace(/-/g, " "));
+  } else {
+    const isLower = currentMain !== currentMain.toUpperCase();
+    const caseWord = isLower ? "Lowercase" : "Uppercase";
+    speakText(`${caseWord} ${currentMain}`);
+  }
+}
+
+/* ====== Initialize ====== */
+generateNumber();
+loadVoices();
+</script>
+</body>
+</html>
